@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -14,6 +15,7 @@ func (p *AWSProvider) CreateFunction(ctx context.Context, spec provider.Function
 	output, err := p.lambdaClient.CreateFunction(ctx, &lambda.CreateFunctionInput{
 		FunctionName: aws.String(spec.Name),
 		Runtime:      types.Runtime(spec.Runtime),
+		Handler:      aws.String("index.handler"),
 		MemorySize:   aws.Int32(int32(spec.MemoryMB)),
 		Timeout:      aws.Int32(int32(spec.TimeoutSecs)),
 		Role:         aws.String(spec.ExecutionRole),
@@ -27,6 +29,15 @@ func (p *AWSProvider) CreateFunction(ctx context.Context, spec provider.Function
 	})
 	if err != nil {
 		return nil, fmt.Errorf("aws: create function %q: %w", spec.Name, err)
+	}
+
+	// Wait for the function to become active before returning.
+	// This prevents API Gateway wiring from failing on a function that isn't ready yet.
+	waiter := lambda.NewFunctionActiveV2Waiter(p.lambdaClient)
+	if err := waiter.Wait(ctx, &lambda.GetFunctionInput{
+		FunctionName: aws.String(spec.Name),
+	}, 5*time.Minute); err != nil {
+		return nil, fmt.Errorf("aws: waiting for function %q to become active: %w", spec.Name, err)
 	}
 
 	return &provider.FunctionResult{
@@ -49,6 +60,7 @@ func (p *AWSProvider) UpdateFunction(ctx context.Context, spec provider.Function
 	output, err := p.lambdaClient.UpdateFunctionConfiguration(ctx, &lambda.UpdateFunctionConfigurationInput{
 		FunctionName: aws.String(spec.Name),
 		Runtime:      types.Runtime(spec.Runtime),
+		Handler:      aws.String("index.handler"),
 		MemorySize:   aws.Int32(int32(spec.MemoryMB)),
 		Timeout:      aws.Int32(int32(spec.TimeoutSecs)),
 		Role:         aws.String(spec.ExecutionRole),

@@ -40,7 +40,7 @@ func (p *AWSProvider) CreateAPIEndpoint(ctx context.Context, spec provider.APISp
 
 func (p *AWSProvider) UpdateAPIEndpoint(ctx context.Context, spec provider.APISpec) (*provider.APIResult, error) {
 	output, err := p.apiGatewayClient.UpdateApi(ctx, &apigatewayv2.UpdateApiInput{
-		ApiId:  aws.String(spec.TargetID),
+		ApiId:  aws.String(spec.APIID),
 		Name:   aws.String(spec.Name),
 		Target: aws.String(spec.TargetID),
 	})

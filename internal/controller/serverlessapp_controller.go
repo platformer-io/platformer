@@ -84,8 +84,8 @@ func (r *ServerlessAppReconciler) reconcileCreate(ctx context.Context, app *plat
 
 	// 1. IAM execution role.
 	role, err := r.Provider.CreateExecutionRole(ctx, provider.RoleSpec{
-		Name:       fnName,
-		PolicyDocs: defaultLambdaPolicies(),
+		Name:        fnName,
+		DatabaseARN: "", // populated in a future session when DynamoDB support is wired
 	})
 	if err != nil {
 		return r.failWith(ctx, app, "CreateExecutionRole", err)
@@ -170,6 +170,7 @@ func (r *ServerlessAppReconciler) reconcileUpdate(ctx context.Context, app *plat
 	if app.Spec.API != nil && app.Spec.API.Enabled && app.Status.APIID != "" {
 		api, err := r.Provider.UpdateAPIEndpoint(ctx, provider.APISpec{
 			Name:     fnName,
+			APIID:    app.Status.APIID,
 			Protocol: "HTTP",
 			TargetID: fn.ID,
 			Stage:    app.Spec.API.Stage,
@@ -263,13 +264,6 @@ func toProviderDatabaseSpec(name string, app *platformerv1.ServerlessApp) provid
 		tables[i] = provider.TableSpec{Name: t.Name}
 	}
 	return provider.DatabaseSpec{Name: name, Tables: tables}
-}
-
-func defaultLambdaPolicies() []string {
-	return []string{
-		`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["logs:CreateLogStream","logs:PutLogEvents"],"Resource":"arn:aws:logs:*:*:*"}]}`,
-		`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["xray:PutTraceSegments","xray:PutTelemetryRecords"],"Resource":"*"}]}`,
-	}
 }
 
 // SetupWithManager registers the controller with the manager.

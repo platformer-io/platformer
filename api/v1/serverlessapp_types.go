@@ -23,8 +23,9 @@ type ServerlessApp struct {
 
 // ServerlessAppSpec defines the desired state of a ServerlessApp.
 type ServerlessAppSpec struct {
-	// Runtime is the Lambda execution runtime (e.g. "nodejs22.x", "python3.13", "provided.al2023").
+	// Runtime is the Lambda execution runtime. MVP supports "nodejs20.x" only.
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=nodejs20.x
 	Runtime string `json:"runtime"`
 
 	// MemoryMB is the Lambda memory allocation in megabytes (128–10240).

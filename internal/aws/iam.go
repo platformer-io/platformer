@@ -28,16 +28,39 @@ func (p *AWSProvider) CreateExecutionRole(ctx context.Context, spec provider.Rol
 		return nil, fmt.Errorf("aws: create role %q: %w", spec.Name, err)
 	}
 
-	// Attach each inline policy document.
-	for i, doc := range spec.PolicyDocs {
-		policyName := fmt.Sprintf("%s-policy-%d", spec.Name, i)
-		_, err := p.iamClient.PutRolePolicy(ctx, &iam.PutRolePolicyInput{
+	// Attach the AWS-managed basic Lambda execution policy (allows CloudWatch logging).
+	_, err = p.iamClient.AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
+		RoleName:  aws.String(spec.Name),
+		PolicyArn: aws.String("arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("aws: attach basic execution policy to role %q: %w", spec.Name, err)
+	}
+
+	// If a DynamoDB table ARN is provided, attach a scoped inline policy (least-privilege).
+	if spec.DatabaseARN != "" {
+		dynamoPolicy := fmt.Sprintf(`{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:Query",
+      "dynamodb:Scan"
+    ],
+    "Resource": "%s"
+  }]
+}`, spec.DatabaseARN)
+		_, err = p.iamClient.PutRolePolicy(ctx, &iam.PutRolePolicyInput{
 			RoleName:       aws.String(spec.Name),
-			PolicyName:     aws.String(policyName),
-			PolicyDocument: aws.String(doc),
+			PolicyName:     aws.String(spec.Name + "-dynamodb"),
+			PolicyDocument: aws.String(dynamoPolicy),
 		})
 		if err != nil {
-			return nil, fmt.Errorf("aws: attach policy %d to role %q: %w", i, spec.Name, err)
+			return nil, fmt.Errorf("aws: attach dynamodb policy to role %q: %w", spec.Name, err)
 		}
 	}
 
@@ -47,7 +70,24 @@ func (p *AWSProvider) CreateExecutionRole(ctx context.Context, spec provider.Rol
 }
 
 func (p *AWSProvider) DeleteExecutionRole(ctx context.Context, name string) error {
-	// Inline policies must be deleted before the role can be deleted.
+	// Detach all managed policies before deleting the role (AWS requirement).
+	attached, err := p.iamClient.ListAttachedRolePolicies(ctx, &iam.ListAttachedRolePoliciesInput{
+		RoleName: aws.String(name),
+	})
+	if err != nil {
+		return fmt.Errorf("aws: list attached policies for role %q: %w", name, err)
+	}
+	for _, policy := range attached.AttachedPolicies {
+		_, err := p.iamClient.DetachRolePolicy(ctx, &iam.DetachRolePolicyInput{
+			RoleName:  aws.String(name),
+			PolicyArn: policy.PolicyArn,
+		})
+		if err != nil {
+			return fmt.Errorf("aws: detach policy %q from role %q: %w", aws.ToString(policy.PolicyArn), name, err)
+		}
+	}
+
+	// Delete inline policies before deleting the role.
 	policies, err := p.iamClient.ListRolePolicies(ctx, &iam.ListRolePoliciesInput{
 		RoleName: aws.String(name),
 	})

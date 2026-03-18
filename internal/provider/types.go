@@ -20,6 +20,7 @@ type FunctionResult struct {
 
 type APISpec struct {
 	Name     string
+	APIID    string // existing API Gateway ID — only set on update, empty on create
 	TargetID string // Lambda ARN or GCP function ID
 	Protocol string // "HTTP" | "WEBSOCKET"
 	Stage    string
@@ -47,8 +48,8 @@ type DatabaseResult struct {
 }
 
 type RoleSpec struct {
-	Name       string
-	PolicyDocs []string // JSON policy documents
+	Name        string
+	DatabaseARN string // optional — if non-empty, adds a scoped DynamoDB policy for this table ARN
 }
 
 type RoleResult struct {

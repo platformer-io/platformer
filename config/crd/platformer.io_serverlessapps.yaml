@@ -114,8 +114,10 @@ spec:
                 minimum: 128
                 type: integer
               runtime:
-                description: Runtime is the Lambda execution runtime (e.g. "nodejs22.x",
-                  "python3.13", "provided.al2023").
+                description: Runtime is the Lambda execution runtime. MVP supports
+                  "nodejs20.x" only.
+                enum:
+                - nodejs20.x
                 type: string
               timeoutSecs:
                 default: 30
