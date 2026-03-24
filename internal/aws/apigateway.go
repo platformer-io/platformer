@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
@@ -23,14 +24,20 @@ func (p *AWSProvider) CreateAPIEndpoint(ctx context.Context, spec provider.APISp
 
 	// Grant API Gateway permission to invoke the Lambda function.
 	// HTTP API v2 with a direct Target ARN does NOT auto-create this permission.
+	// Extract account ID from the Lambda ARN: arn:aws:lambda:<region>:<account>:function:<name>
+	accountID := "unknown"
+	if parts := strings.Split(spec.TargetID, ":"); len(parts) >= 5 {
+		accountID = parts[4]
+	}
 	_, err = p.lambdaClient.AddPermission(ctx, &lambda.AddPermissionInput{
 		FunctionName: aws.String(spec.TargetID),
 		StatementId:  aws.String("apigateway-invoke-" + aws.ToString(api.ApiId)),
 		Action:       aws.String("lambda:InvokeFunction"),
 		Principal:    aws.String("apigateway.amazonaws.com"),
 		SourceArn: aws.String(fmt.Sprintf(
-			"arn:aws:execute-api:%s:*:%s/*",
+			"arn:aws:execute-api:%s:%s:%s/*",
 			p.region,
+			accountID,
 			aws.ToString(api.ApiId),
 		)),
 	})
