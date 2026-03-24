@@ -1,0 +1,15 @@
+apiVersion: platformer.io/v1
+kind: ServerlessApp
+metadata:
+  name: hello-world
+  namespace: default
+spec:
+  runtime: nodejs20.x
+  memoryMB: 128
+  timeoutSecs: 10
+  code:
+    s3Bucket: REPLACE_WITH_YOUR_BUCKET
+    s3Key: examples/hello-world/function.zip
+  api:
+    enabled: true
+    stage: prod
