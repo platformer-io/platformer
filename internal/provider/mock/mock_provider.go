@@ -113,7 +113,7 @@ func (m *MockProvider) UpdateAPIEndpoint(_ context.Context, spec provider.APISpe
 	return result, nil
 }
 
-func (m *MockProvider) DeleteAPIEndpoint(_ context.Context, id string) error {
+func (m *MockProvider) DeleteAPIEndpoint(_ context.Context, id string, _ string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.Calls["DeleteAPIEndpoint"]++

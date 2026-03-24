@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,21 +35,28 @@ func newStatusCmd(scheme *runtime.Scheme) *cobra.Command {
 			}
 
 			s := app.Status
+			fmt.Println()
+			printField("App", name)
+			printField("Phase", phaseIcon(s.Phase)+"  "+s.Phase)
+			printField("Endpoint", s.APIEndpoint)
+			printField("Function", s.FunctionARN)
+			printField("Logs", s.LogGroupName)
 
-			// Phase with colour indicator.
-			phaseIcon := phaseIcon(s.Phase)
-			fmt.Printf("\n%s  %s/%s  [%s]\n\n", phaseIcon, ns, name, s.Phase)
-
-			printField("Function ARN    ", s.FunctionARN)
-			printField("Function Version", s.FunctionVersion)
-			printField("Execution Role  ", s.ExecutionRoleARN)
-			printField("API Endpoint    ", s.APIEndpoint)
-			printField("Log Group       ", s.LogGroupName)
+			// Most recent condition transition time as "Synced".
+			var synced time.Time
+			for _, c := range s.Conditions {
+				if c.LastTransitionTime.After(synced) {
+					synced = c.LastTransitionTime.Time
+				}
+			}
+			if !synced.IsZero() {
+				printField("Synced", synced.Format(time.RFC3339))
+			}
 
 			if len(s.Conditions) > 0 {
 				fmt.Println("\nConditions:")
 				for _, c := range s.Conditions {
-					fmt.Printf("  %-20s %s  %s\n", c.Type, c.Status, c.Message)
+					fmt.Printf("  %-20s %-5s  %s\n", c.Type, c.Status, c.Message)
 				}
 			}
 			fmt.Println()
@@ -61,13 +69,13 @@ func printField(label, value string) {
 	if value == "" {
 		return
 	}
-	fmt.Printf("  %-20s %s\n", label, value)
+	fmt.Printf("  %-10s %s\n", label+":", value)
 }
 
 func phaseIcon(phase string) string {
 	switch phase {
 	case "Ready":
-		return "✓"
+		return "✔"
 	case "Provisioning":
 		return "⟳"
 	case "Failed":

@@ -15,7 +15,7 @@ type CloudProvider interface {
 	// Networking
 	CreateAPIEndpoint(ctx context.Context, spec APISpec) (*APIResult, error)
 	UpdateAPIEndpoint(ctx context.Context, spec APISpec) (*APIResult, error)
-	DeleteAPIEndpoint(ctx context.Context, id string) error
+	DeleteAPIEndpoint(ctx context.Context, id string, functionName string) error
 	GetAPIEndpoint(ctx context.Context, id string) (*APIResult, error)
 
 	// Database

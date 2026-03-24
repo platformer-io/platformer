@@ -1,0 +1,9 @@
+name: hello-world
+type: lambda
+runtime: nodejs20.x
+handler: src/index.js
+memory: 128
+timeout: 10
+api:
+  enabled: true
+  stage: prod

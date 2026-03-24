@@ -1,62 +1,53 @@
 # hello-world
 
-A minimal Node.js Lambda function deployed via PlatFormer. Returns a JSON greeting with a timestamp.
+A minimal Node.js Lambda function deployed via PlatFormer. Returns a JSON greeting with the request path and a timestamp.
 
 ## Prerequisites
 
-- AWS CLI configured (`aws configure`)
-- An S3 bucket in the same region as your operator
+- AWS CLI configured: `aws configure` (access key, secret, region: `us-east-1`)
+- Verify credentials: `aws sts get-caller-identity`
 - A running kind cluster with the PlatFormer CRD installed
-- `platform` CLI built (`go build -o bin/platform ./cmd/cli`)
+- PlatFormer operator running: `go run cmd/operator/main.go`
+- `platform` CLI built: `go build -o bin/platform ./cmd/cli`
 
-## 1. Zip the function
-
-```bash
-cd examples/hello-world/src
-zip ../function.zip index.js
-```
-
-## 2. Upload to S3
+## Deploy
 
 ```bash
-aws s3 cp examples/hello-world/function.zip \
-  s3://YOUR_BUCKET/examples/hello-world/function.zip
+platform deploy examples/hello-world/
 ```
 
-## 3. Update the manifest
+`platform deploy` will automatically:
 
-Edit [deploy/serverlessapp.yaml](deploy/serverlessapp.yaml) and replace `REPLACE_WITH_YOUR_BUCKET` with your bucket name:
+1. Read `platformer.yaml` from the directory
+2. Zip the `src/` directory
+3. Create an S3 bucket `platformer-<account-id>-<region>` (if it doesn't exist)
+4. Upload the function zip to S3
+5. Apply a `ServerlessApp` to your Kubernetes cluster
+6. Poll until the function is live
 
-```yaml
-code:
-  s3Bucket: my-platformer-bucket   # ← your bucket here
-  s3Key: examples/hello-world/function.zip
+Expected output:
+
+```
+🚀 Deploying hello-world...
+✔ Created S3 bucket: platformer-123456789012-us-east-1
+✔ Uploaded function code (1.2 KB)
+✔ Applied ServerlessApp to cluster
+✔ Provisioning... (this takes ~20-30 seconds)
+✔ Ready in 28s
+
+🌐 Endpoint: https://abc123.execute-api.us-east-1.amazonaws.com/prod
+
+Test it:
+  curl https://abc123.execute-api.us-east-1.amazonaws.com/prod
+
+Clean up:
+  platform destroy hello-world
 ```
 
-## 4. Deploy
+## Test
 
 ```bash
-kubectl apply -f examples/hello-world/deploy/serverlessapp.yaml
-```
-
-Or using the PlatFormer CLI:
-
-```bash
-platform deploy examples/hello-world/deploy/serverlessapp.yaml
-```
-
-## 5. Watch the rollout
-
-```bash
-kubectl get serverlessapps -w
-```
-
-Once `PHASE` reaches `Ready`, the `ENDPOINT` column shows your live URL.
-
-## 6. Test the endpoint
-
-```bash
-curl $(kubectl get serverlessapp hello-world -o jsonpath='{.status.endpoint}')
+curl $(kubectl get serverlessapp hello-world -o jsonpath='{.status.apiEndpoint}')
 ```
 
 Expected response:
@@ -65,14 +56,27 @@ Expected response:
 {
   "message": "Hello from PlatFormer!",
   "app": "hello-world",
+  "path": "/",
   "timestamp": "2026-03-23T00:00:00.000Z"
 }
 ```
 
-## 7. Tear down
+## Check status
 
 ```bash
-kubectl delete serverlessapp hello-world
+platform status hello-world
 ```
 
-PlatFormer will delete the Lambda function, API Gateway, IAM role, and CloudWatch log group automatically via its finalizer.
+## View logs
+
+```bash
+aws logs tail /aws/lambda/platformer-default-hello-world --follow
+```
+
+## Destroy
+
+```bash
+platform destroy hello-world
+```
+
+PlatFormer deletes the Lambda function, API Gateway, IAM role, and CloudWatch log group via its finalizer.

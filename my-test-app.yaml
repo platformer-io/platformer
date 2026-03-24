@@ -1,0 +1,20 @@
+apiVersion: platformer.io/v1
+kind: ServerlessApp
+metadata:
+  name: my-test-app
+  namespace: default
+spec:
+  runtime: nodejs22.x
+  memoryMB: 512
+  timeoutSecs: 30
+  code:
+    s3Bucket: YOUR_BUCKET
+    s3Key: my-test-app/function.zip
+  environment:
+    APP_ENV: production
+  api:
+    enabled: true
+    stage: prod
+  # database:
+  #   tables:
+  #     - name: my-test-app-data

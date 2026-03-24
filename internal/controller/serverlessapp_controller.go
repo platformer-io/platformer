@@ -198,7 +198,7 @@ func (r *ServerlessAppReconciler) reconcileUpdate(ctx context.Context, app *plat
 
 	// 4. API was disabled — remove it.
 	if (app.Spec.API == nil || !app.Spec.API.Enabled) && app.Status.APIID != "" {
-		if err := r.Provider.DeleteAPIEndpoint(ctx, app.Status.APIID); err != nil {
+		if err := r.Provider.DeleteAPIEndpoint(ctx, app.Status.APIID, app.Status.FunctionARN); err != nil {
 			return r.failWith(ctx, app, "DeleteAPIEndpoint", err)
 		}
 		app.Status.APIEndpoint = ""
@@ -217,7 +217,7 @@ func (r *ServerlessAppReconciler) reconcileDelete(ctx context.Context, app *plat
 
 	// Best-effort cleanup — log errors but don't block finalizer removal.
 	if app.Status.APIID != "" {
-		_ = r.Provider.DeleteAPIEndpoint(ctx, app.Status.APIID)
+		_ = r.Provider.DeleteAPIEndpoint(ctx, app.Status.APIID, app.Status.FunctionARN)
 	}
 	_ = r.Provider.DeleteFunction(ctx, fnName)
 	if app.Status.LogGroupName != "" {
