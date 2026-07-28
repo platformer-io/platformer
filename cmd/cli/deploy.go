@@ -187,6 +187,7 @@ func buildServerlessApp(cfg *appconfig.PlatformerConfig, ns, bucket, s3Key strin
 		},
 		Spec: platformerv1.ServerlessAppSpec{
 			Runtime:     cfg.Runtime,
+			Tier:        cfg.Tier,
 			MemoryMB:    int32(cfg.Memory),
 			TimeoutSecs: int32(cfg.Timeout),
 			Code: platformerv1.CodeSource{

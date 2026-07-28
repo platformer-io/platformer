@@ -20,6 +20,9 @@ spec:
     - jsonPath: .status.phase
       name: Phase
       type: string
+    - jsonPath: .spec.tier
+      name: Tier
+      type: string
     - jsonPath: .status.apiEndpoint
       name: Endpoint
       type: string
@@ -118,6 +121,17 @@ spec:
                   "nodejs20.x" only.
                 enum:
                 - nodejs20.x
+                type: string
+              tier:
+                default: medium
+                description: 'Tier is a predefined performance profile: small (128
+                  MB / 10 s), medium (512 MB / 30 s), large (1024 MB / 60 s), or
+                  custom (set memoryMB and timeoutSecs explicitly).'
+                enum:
+                - small
+                - medium
+                - large
+                - custom
                 type: string
               timeoutSecs:
                 default: 30

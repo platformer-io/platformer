@@ -5,8 +5,7 @@ metadata:
   namespace: default
 spec:
   runtime: nodejs20.x
-  memoryMB: 128
-  timeoutSecs: 10
+  tier: small
   code:
     s3Bucket: REPLACE_WITH_YOUR_BUCKET
     s3Key: examples/hello-world/function.zip

@@ -27,6 +27,10 @@ type PlatformerConfig struct {
 	Type    string            `yaml:"type"`
 	Runtime string            `yaml:"runtime"`
 	Handler string            `yaml:"handler"`
+	// Tier is a predefined performance profile (small/medium/large/custom).
+	// When set to small, medium, or large, Memory and Timeout are auto-filled.
+	// When set to custom (or omitted), Memory and Timeout are used directly.
+	Tier    string            `yaml:"tier"`
 	Memory  int               `yaml:"memory"`
 	Timeout int               `yaml:"timeout"`
 	Env     map[string]string `yaml:"environment"`
@@ -73,6 +77,34 @@ func Load(path string) (*PlatformerConfig, error) {
 	}
 	if cfg.Handler == "" {
 		return nil, fmt.Errorf("%s: handler is required", path)
+	}
+
+	// Resolve tier → memory and timeout.
+	tierMemory := map[string]int{"small": 128, "medium": 512, "large": 1024}
+	tierTimeout := map[string]int{"small": 10, "medium": 30, "large": 60}
+
+	switch cfg.Tier {
+	case "small", "medium", "large":
+		cfg.Memory = tierMemory[cfg.Tier]
+		cfg.Timeout = tierTimeout[cfg.Tier]
+	case "custom":
+		if cfg.Memory == 0 {
+			cfg.Memory = 512
+		}
+		if cfg.Timeout == 0 {
+			cfg.Timeout = 30
+		}
+	case "":
+		// Backward compat: no tier field — treat as custom using explicit values.
+		if cfg.Memory == 0 {
+			cfg.Memory = 512
+		}
+		if cfg.Timeout == 0 {
+			cfg.Timeout = 30
+		}
+		cfg.Tier = "custom"
+	default:
+		return nil, fmt.Errorf("%s: tier must be one of: small, medium, large, custom (got %q)", path, cfg.Tier)
 	}
 
 	return &cfg, nil

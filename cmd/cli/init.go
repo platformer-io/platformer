@@ -30,8 +30,7 @@ metadata:
   namespace: {{ .Namespace }}
 spec:
   runtime: {{ .Runtime }}
-  memoryMB: 512
-  timeoutSecs: 30
+  tier: {{ .Tier }}
   code:
     s3Bucket: YOUR_BUCKET
     s3Key: {{ .Name }}/function.zip
@@ -47,6 +46,7 @@ spec:
 
 func newInitCmd() *cobra.Command {
 	var runtime string
+	var tier string
 
 	cmd := &cobra.Command{
 		Use:   "init <app-name>",
@@ -55,6 +55,11 @@ func newInitCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			ns, _ := cmd.Flags().GetString("namespace")
+
+			validTiers := map[string]bool{"small": true, "medium": true, "large": true, "custom": true}
+			if !validTiers[tier] {
+				return fmt.Errorf("--tier must be one of: small, medium, large, custom (got %q)", tier)
+			}
 
 			outFile := filepath.Join(".", name+".yaml")
 
@@ -73,6 +78,7 @@ func newInitCmd() *cobra.Command {
 				"Name":      name,
 				"Namespace": ns,
 				"Runtime":   runtime,
+				"Tier":      tier,
 			}); err != nil {
 				return err
 			}
@@ -85,6 +91,8 @@ func newInitCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&runtime, "runtime", "nodejs22.x",
 		"Lambda runtime (nodejs22.x | python3.13 | provided.al2023)")
+	cmd.Flags().StringVar(&tier, "tier", "medium",
+		"Performance tier: small (128 MB/10 s) | medium (512 MB/30 s) | large (1024 MB/60 s) | custom")
 
 	return cmd
 }

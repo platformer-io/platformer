@@ -5,8 +5,7 @@ metadata:
   namespace: default
 spec:
   runtime: nodejs22.x
-  memoryMB: 512
-  timeoutSecs: 30
+  tier: medium
   code:
     s3Bucket: YOUR_BUCKET
     s3Key: my-test-app/function.zip

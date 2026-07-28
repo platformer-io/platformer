@@ -1,6 +1,9 @@
 # hello-world
 
-A minimal Node.js Lambda function deployed via PlatFormer. Returns a JSON greeting with the request path and a timestamp.
+A multi-route Node.js web application deployed via PlatFormer. Serves a styled
+HTML dashboard at `/`, a JSON health endpoint at `/health`, and full runtime
+info at `/api/info`. Demonstrates real HTTP routing, environment variable
+injection, and browser-viewable output — not just a response code.
 
 ## Prerequisites
 
@@ -30,7 +33,7 @@ Expected output:
 ```
 🚀 Deploying hello-world...
 ✔ Created S3 bucket: platformer-123456789012-us-east-1
-✔ Uploaded function code (1.2 KB)
+✔ Uploaded function code (3.1 KB)
 ✔ Applied ServerlessApp to cluster
 ✔ Provisioning... (this takes ~20-30 seconds)
 ✔ Ready in 28s
@@ -44,21 +47,69 @@ Clean up:
   platform destroy hello-world
 ```
 
+## Endpoints
+
+| Route | Type | What it tests |
+|---|---|---|
+| `GET /` | HTML dashboard | Routing, HTML responses, env var injection, Lambda context |
+| `GET /health` | JSON | Health check path, uptime tracking |
+| `GET /api/info` | JSON | Full runtime + request context, structured output |
+| `GET /anything-else` | JSON 404 | Error path handling |
+
 ## Test
 
+Set the endpoint in a variable for convenience:
+
 ```bash
-curl $(kubectl get serverlessapp hello-world -o jsonpath='{.status.apiEndpoint}')
+ENDPOINT=$(kubectl get serverlessapp hello-world -o jsonpath='{.status.apiEndpoint}')
 ```
 
-Expected response:
+**Homepage (open in browser or curl):**
+```bash
+curl $ENDPOINT/
+# → styled HTML page with runtime dashboard
+```
 
+**Health check:**
+```bash
+curl $ENDPOINT/health
+```
 ```json
 {
-  "message": "Hello from PlatFormer!",
-  "app": "hello-world",
-  "path": "/",
-  "timestamp": "2026-03-23T00:00:00.000Z"
+  "status": "ok",
+  "uptimeMs": 142,
+  "timestamp": "2026-05-20T12:00:00.000Z"
 }
+```
+
+**Runtime info:**
+```bash
+curl $ENDPOINT/api/info
+```
+```json
+{
+  "function": {
+    "name": "platformer-default-hello-world",
+    "region": "us-east-1",
+    "memoryMB": 128
+  },
+  "app": {
+    "env": "production",
+    "version": "1.0.0"
+  },
+  "request": {
+    "path": "/api/info",
+    "method": "GET",
+    "userAgent": "curl/8.4.0"
+  },
+  "timestamp": "2026-05-20T12:00:00.000Z"
+}
+```
+
+**404 path:**
+```bash
+curl -i $ENDPOINT/not-a-route
+# → HTTP 404  {"error":"Not found","path":"/not-a-route"}
 ```
 
 ## Check status
@@ -73,10 +124,18 @@ platform status hello-world
 aws logs tail /aws/lambda/platformer-default-hello-world --follow
 ```
 
+Logs show every route hit:
+```
+GET /
+GET /health
+GET /api/info
+```
+
 ## Destroy
 
 ```bash
 platform destroy hello-world
 ```
 
-PlatFormer deletes the Lambda function, API Gateway, IAM role, and CloudWatch log group via its finalizer.
+PlatFormer deletes the Lambda function, API Gateway, IAM role, and CloudWatch
+log group via its finalizer.

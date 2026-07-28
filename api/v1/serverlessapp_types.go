@@ -22,6 +22,7 @@ import (
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced,shortName=sapp
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Tier",type=string,JSONPath=`.spec.tier`
 // +kubebuilder:printcolumn:name="Endpoint",type=string,JSONPath=`.status.apiEndpoint`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
@@ -41,6 +42,13 @@ type ServerlessAppSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=nodejs20.x
 	Runtime string `json:"runtime"`
+
+	// Tier is a predefined performance profile: small (128 MB / 10 s),
+	// medium (512 MB / 30 s), large (1024 MB / 60 s), or custom (set
+	// memoryMB and timeoutSecs explicitly). Defaults to medium.
+	// +kubebuilder:validation:Enum=small;medium;large;custom
+	// +kubebuilder:default=medium
+	Tier string `json:"tier,omitempty"`
 
 	// MemoryMB is the Lambda memory allocation in megabytes (128–10240).
 	// +kubebuilder:validation:Minimum=128

@@ -92,6 +92,7 @@ func (r *ServerlessAppReconciler) reconcileCreate(ctx context.Context, app *plat
 	if err := r.setPhase(ctx, app, "Provisioning"); err != nil {
 		return ctrl.Result{}, err
 	}
+	applyTierDefaults(&app.Spec)
 
 	fnName := resourceName(app)
 	logGroup := fmt.Sprintf("/aws/lambda/%s", fnName)
@@ -160,6 +161,7 @@ func (r *ServerlessAppReconciler) reconcileUpdate(ctx context.Context, app *plat
 	if err := r.setPhase(ctx, app, "Provisioning"); err != nil {
 		return ctrl.Result{}, err
 	}
+	applyTierDefaults(&app.Spec)
 
 	fnName := resourceName(app)
 
